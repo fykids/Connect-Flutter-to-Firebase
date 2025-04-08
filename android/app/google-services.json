@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "520922891777",
+    "project_id": "prove-2298b",
+    "storage_bucket": "prove-2298b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:520922891777:android:1bb33caa225d26eddc2200",
+        "android_client_info": {
+          "package_name": "com.example.flutter_firebase_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyALY-FTtLPDaKrqO2VdBzXtwO1EbKuCUBE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
