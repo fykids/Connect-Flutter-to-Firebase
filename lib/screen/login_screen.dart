@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_firebase_1/models/user_models.dart';
@@ -14,49 +15,63 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreen extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  bool _isPasswordVisible = false;
-  bool _isLoading = false;
   final AuthServices _authServices = AuthServices();
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+
   String? _email;
   String? _password;
+  bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
   Future<void> _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-      setState(() => _isLoading = true);
+    if (!_formKey.currentState!.validate()) return;
 
-      try {
-        UserModels? user = await _authServices.signInWithEmailAndPassword(
-          _email!,
-          _password!,
-        );
+    _formKey.currentState!.save();
+    setState(() => _isLoading = true);
 
-        if (user != null) {
-          if (kDebugMode) {
-            print('Login berhasil: ${user.email}');
+    try {
+      UserModels? user = await _authServices.signInWithEmailAndPassword(
+        _email!,
+        _password!,
+      );
+
+      if (user != null) {
+        await _firebaseAuth.currentUser?.reload();
+        final currentUser = _firebaseAuth.currentUser;
+
+        if (currentUser != null && !currentUser.emailVerified) {
+          await _firebaseAuth.signOut();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Email belum diverifikasi. Cek inbox kamu!'),
+              ),
+            );
           }
-          Navigator.pushReplacementNamed(
-            // ignore: use_build_context_synchronously
-            context,
-            '/home',
-          );
         } else {
-          // ignore: use_build_context_synchronously
+          if (kDebugMode) print('Login berhasil: ${user.email}');
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/home');
+          }
+        }
+      } else {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Login gagal. Periksa email dan password Anda.'),
             ),
           );
         }
-      } catch (e) {
-        // ignore: use_build_context_synchronously
+      }
+    } catch (e) {
+      if (kDebugMode) print('Error login: $e');
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Terjadi kesalahan. Coba lagi.')),
         );
-        if (kDebugMode) {
-          print('Error login: $e');
-        }
-      } finally {
+      }
+    } finally {
+      if (mounted) {
         setState(() => _isLoading = false);
       }
     }
@@ -69,7 +84,7 @@ class _LoginScreen extends State<LoginScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              Text('WELL'),
+              const Text('WELL'),
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: Form(
@@ -79,29 +94,23 @@ class _LoginScreen extends State<LoginScreen> {
                       CustomField(
                         hintText: 'Email',
                         validator: (value) {
-                          if (value!.isEmpty) {
+                          if (value == null || value.isEmpty) {
                             return 'Email tidak boleh kosong';
                           }
                           return null;
                         },
-                        onSaved: (value) {
-                          _email = value!;
-                          debugPrint(_email);
-                        },
+                        onSaved: (value) => _email = value,
                       ),
                       const SizedBox(height: 4),
                       CustomField(
                         hintText: 'Password',
                         validator: (value) {
-                          if (value!.isEmpty) {
+                          if (value == null || value.isEmpty) {
                             return 'Password tidak boleh kosong';
                           }
                           return null;
                         },
-                        onSaved: (value) {
-                          _password = value!;
-                          debugPrint(_password);
-                        },
+                        onSaved: (value) => _password = value,
                         obscureText: !_isPasswordVisible,
                         keyboardType: TextInputType.visiblePassword,
                         suffixIcon: IconButton(
@@ -117,14 +126,25 @@ class _LoginScreen extends State<LoginScreen> {
                           },
                         ),
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 4),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.black,
+                          fixedSize: const Size(double.maxFinite, 50),
+                          alignment: Alignment.centerLeft,
+                        ),
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/forgot-password');
+                        },
+                        child: const Text('Lupa Password?'),
+                      ),
+                      const SizedBox(height: 20),
                       Row(
                         children: [
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () {
                                 Navigator.pushReplacementNamed(
-                                  // ignore: use_build_context_synchronously
                                   context,
                                   '/register',
                                 );
@@ -133,7 +153,7 @@ class _LoginScreen extends State<LoginScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                fixedSize: Size(double.maxFinite, 50),
+                                fixedSize: const Size(double.maxFinite, 50),
                               ),
                               child: const Text('Daftar'),
                             ),
@@ -146,10 +166,18 @@ class _LoginScreen extends State<LoginScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                fixedSize: Size(double.maxFinite, 50),
+                                fixedSize: const Size(double.maxFinite, 50),
                                 backgroundColor: Colors.amber,
                               ),
-                              child: const Text('Masuk'),
+                              child:
+                                  _isLoading
+                                      ? const CircularProgressIndicator(
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                      )
+                                      : const Text('Masuk'),
                             ),
                           ),
                         ],

@@ -26,14 +26,16 @@ class AuthServices {
   Future<UserModels?> signUpWithEmailAndPassword(
     String email,
     String password,
-    String firstName,
-    String lastName,
+    String displayName,
+    String phone,
   ) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+      await result.user?.updateDisplayName(displayName);
+      await result.user?.sendEmailVerification();
       User? user = result.user;
       return _userFromFirebaseUser(user);
     } catch (e) {
@@ -71,6 +73,16 @@ class AuthServices {
       if (kDebugMode) {
         print(e.toString());
       }
+    }
+  }
+
+  // reset password
+  Future<void> resetPassword(String email) async {
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      if (kDebugMode) print('Reset password error: $e');
+      rethrow;
     }
   }
 }
